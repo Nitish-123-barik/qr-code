@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  notes     LeadNote[]
+  statusChanges LeadStatusHistory[]
+}
+
+model Student {
+  id              String   @id @default(uuid())
+  registrationId  String   @unique @default(uuid())
+  fullName        String
+  phone           String   @unique
+  email           String?
+  collegeName     String
+  course          String
+  branch          String
+  currentYear     String
+  preferredMode   String
+  message         String?
+  consent         Boolean  @default(true)
+  leadStatus      String   @default("New")
+  campaignId      String?
+  campaign        Campaign? @relation(fields: [campaignId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  interests       StudentInterest[]
+  notes           LeadNote[]
+  statusHistory   LeadStatusHistory[]
+}
+
+model Interest {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  students  StudentInterest[]
+}
+
+model StudentInterest {
+  id         String   @id @default(uuid())
+  studentId  String
+  interestId String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  interest   Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([studentId, interestId])
+}
+
+model Campaign {
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique
+  description  String?
+  location     String?
+  collegeName  String?
+  campaignType String
+  status       String   @default("active")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  students     Student[]
+  qrCodes      QRCode[]
+}
+
+model QRCode {
+  id              String   @id @default(uuid())
+  campaignId      String
+  uniqueCode      String   @unique
+  registrationUrl String
+  createdAt       DateTime @default(now())
+  campaign        Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
+
+model LeadNote {
+  id        String   @id @default(uuid())
+  studentId String
+  adminId   String
+  note      String
+  createdAt DateTime @default(now())
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  admin     Admin    @relation(fields: [adminId], references: [id])
+}
+
+model LeadStatusHistory {
+  id         String   @id @default(uuid())
+  studentId  String
+  oldStatus  String?
+  newStatus  String
+  changedBy  String
+  createdAt  DateTime @default(now())
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  admin      Admin    @relation(fields: [changedBy], references: [id])
+}
+
+model Settings {
+  id                    String   @id @default(uuid())
+  companyName           String   @default("InternLead")
+  companyLogo           String?
+  successMessage        String   @default("Thank you for registering! Our team will contact you soon.")
+  whatsappContact       String?
+  defaultWhatsappMessage String  @default("Hello {name}, Thank you for registering for our internship and career opportunities.")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
